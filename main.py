@@ -99,91 +99,91 @@ class DBmanager:
         client_phones = []
 
         if first_name and last_name and email:
-            cursor.execute("""
+            self.cursor.execute("""
                 SELECT * FROM Client
                 WHERE first_name = %s AND last_name = %s AND email = %s
             """, (first_name, last_name, email))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
 
         if first_name and last_name and not email:
-            cursor.execute("""
+            self.cursor.execute("""
                             SELECT * FROM Client
                             WHERE first_name = %s AND last_name = %s
                         """, (first_name, last_name))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
 
         if first_name and not last_name and email:
-            cursor.execute("""
+            self.cursor.execute("""
                             SELECT * FROM Client
                             WHERE first_name = %s AND email = %s
                         """, (first_name, email))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
 
         if first_name and not last_name and not email:
-            cursor.execute("""
+            self.cursor.execute("""
                             SELECT * FROM Client
                             WHERE first_name = %s
                         """, (first_name,))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
 
         if not first_name and last_name and email:
-            cursor.execute("""
+            self.cursor.execute("""
                             SELECT * FROM Client
                             WHERE last_name = %s AND email = %s
                         """, (last_name, email))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
 
         if not first_name and last_name and not email:
-            cursor.execute("""
+            self.cursor.execute("""
                             SELECT * FROM Client
                             WHERE last_name = %s
                         """, (last_name,))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
 
         if not first_name and not last_name and email:
-            cursor.execute("""
+            self.cursor.execute("""
                             SELECT * FROM Client
                             WHERE email = %s
                         """, (email,))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
 
         if phone and client:
-            cursor.execute("""
+            self.cursor.execute("""
                 SELECT * FROM ClientPhones
                 WHERE phone_number = %s AND client_id = %s
             """, (phone, client[0]))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
 
         if phone:
-            cursor.execute("""
+            self.cursor.execute("""
                 SELECT * FROM ClientPhones
                 WHERE phone_number = %s
             """, (phone,))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
 
         if len(client) == 3:
-            cursor.execute("""
+            self.cursor.execute("""
                 SELECT Client.id, first_name, last_name, email, phone_number FROM Client
                 JOIN ClientPhones ON client_id = %s
             """, (client[1],))
 
-            client = cursor.fetchone()
+            client = self.cursor.fetchone()
         elif len(client) == 4:
-            cursor.execute("""
+            self.cursor.execute("""
                 SELECT phone_number FROM ClientPhones
                 WHERE client_id = %s
             """, (client[0],))
 
-            fetch = cursor.fetchall()
+            fetch = self.cursor.fetchall()
 
             if fetch != None:
                 client_phones = [i for i in fetch]
