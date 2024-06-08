@@ -47,17 +47,35 @@ class DBmanager:
         """, (client_id, phone_number))
 
 
-    def change_client_data(self, client_id):
-        print("Изменение данных клиента")
-        first_name = input("Введите имя: ")
-        last_name = input("Введите фамилию: ")
-        email = input("Введите Email: ")
+    def change_client_data(self, client_id, first_name="", last_name="", email="", phone=""):
+        if first_name:
+            self.cursor.execute("""
+                UPDATE Client
+                SET first_name = %s
+                WHERE id = %s
+            """, (first_name, client_id))
 
-        self.cursor.execute("""
-            UPDATE Client
-            SET first_name = %s, last_name = %s, email = %s
-            WHERE id = %s
-        """, (first_name, last_name, email, client_id))
+        if last_name:
+            self.cursor.execute("""
+                UPDATE Client
+                SET last_name = %s
+                WHERE id = %s
+            """, (last_name, client_id))
+
+        if email:
+            self.cursor.execute("""
+                UPDATE Client
+                SET email = %s
+                WHERE id = %s
+            """, (email, client_id))
+
+        if phone:
+            if last_name:
+                self.cursor.execute("""
+                    UPDATE ClientPhones
+                    SET phone_number = %s
+                    WHERE client_id = %s
+                """, (phone, client_id))
 
 
     def delete_client_phone(self, client_id, phone_number):
@@ -76,76 +94,162 @@ class DBmanager:
         """, (client_id,))
 
 
-    def find_client(self):
-        client_data = input("Введите любые данные о клиенте: ")
+    def find_client(self, first_name=None, last_name=None, email=None, phone=None):
+        client = []
+        client_phones = []
 
-        self.cursor.execute("""
-            SELECT * FROM Client
-            WHERE first_name = %s OR last_name = %s OR email = %s
-        """, (client_data, client_data, client_data))
+        if first_name and last_name and email:
+            cursor.execute("""
+                SELECT * FROM Client
+                WHERE first_name = %s AND last_name = %s AND email = %s
+            """, (first_name, last_name, email))
 
-        client = self.cursor.fetchone()
+            client = cursor.fetchone()
 
-        if client == None:
-            self.cursor.execute("""
-                SELECT client_id FROM ClientPhones
+        if first_name and last_name and not email:
+            cursor.execute("""
+                            SELECT * FROM Client
+                            WHERE first_name = %s AND last_name = %s
+                        """, (first_name, last_name))
+
+            client = cursor.fetchone()
+
+        if first_name and not last_name and email:
+            cursor.execute("""
+                            SELECT * FROM Client
+                            WHERE first_name = %s AND email = %s
+                        """, (first_name, email))
+
+            client = cursor.fetchone()
+
+        if first_name and not last_name and not email:
+            cursor.execute("""
+                            SELECT * FROM Client
+                            WHERE first_name = %s
+                        """, (first_name,))
+
+            client = cursor.fetchone()
+
+        if not first_name and last_name and email:
+            cursor.execute("""
+                            SELECT * FROM Client
+                            WHERE last_name = %s AND email = %s
+                        """, (last_name, email))
+
+            client = cursor.fetchone()
+
+        if not first_name and last_name and not email:
+            cursor.execute("""
+                            SELECT * FROM Client
+                            WHERE last_name = %s
+                        """, (last_name,))
+
+            client = cursor.fetchone()
+
+        if not first_name and not last_name and email:
+            cursor.execute("""
+                            SELECT * FROM Client
+                            WHERE email = %s
+                        """, (email,))
+
+            client = cursor.fetchone()
+
+        if phone and client:
+            cursor.execute("""
+                SELECT * FROM ClientPhones
+                WHERE phone_number = %s AND client_id = %s
+            """, (phone, client[0]))
+
+            client = cursor.fetchone()
+
+        if phone:
+            cursor.execute("""
+                SELECT * FROM ClientPhones
                 WHERE phone_number = %s
-            """, (client_data, ))
+            """, (phone,))
 
-            client_id = self.cursor.fetchone()
+            client = cursor.fetchone()
 
-            if client_id != None:
-                self.cursor.execute("""
-                    SELECT * FROM Client
-                    WHERE id = %s
-                """, (client_id[0], ))
+        if len(client) == 3:
+            cursor.execute("""
+                SELECT Client.id, first_name, last_name, email, phone_number FROM Client
+                JOIN ClientPhones ON client_id = %s
+            """, (client[1],))
 
-                client = self.cursor.fetchone()
+            client = cursor.fetchone()
+        elif len(client) == 4:
+            cursor.execute("""
+                SELECT phone_number FROM ClientPhones
+                WHERE client_id = %s
+            """, (client[0],))
 
-        return client
+            fetch = cursor.fetchall()
+
+            if fetch != None:
+                client_phones = [i for i in fetch]
+
+        if client:
+            print("Данные клиента: ")
+            print(f"ID:{client[0]}")
+            print(f"Имя:{client[1]}")
+            print(f"Фамилия:{client[2]}")
+            print(f"Email:{client[3]}")
+
+            print("Телефоны:")
+            if client_phones:
+                for i in client_phones:
+                    print(i[0])
+            else:
+                print("Нет телефонов")
+        else:
+            print("Клиент не найден")
 
 
-conn = psycopg2.connect(database="netology_db", user="postgres", password="123456")
 
-with conn.cursor() as cursor:
-    db = DBmanager(cursor)
+if __name__ == '__main__':
+    conn = psycopg2.connect(database="netology_db", user="postgres", password="123456")
 
-    #Создадим таблицы
-    db.create_tables()
+    with psycopg2.connect(database="netology_db", user="postgres", password="123456") as conn:
+        with conn.cursor() as cursor:
+            db = DBmanager(cursor)
 
-    #Создадим 4 клиентов
-    db.add_new_client("Вячеслав", "Бородин", "v321412@mail.ru", "89193332211")
-    db.add_new_client("Иван", "Иванов", "ivanov@gmail.com", "89992224455")
-    db.add_new_client("Петр", "Петров", "petrov22@mail.ru", "89113234467")
-    db.add_new_client("Дмитрий", "Дмитриев", "dmitry@mail.ru")
+            #Создадим таблицы
+            db.create_tables()
 
-    #Выбираем клиента с айди = 4
-    client_id = 4
+            # Создадим 4 клиентов
+            db.add_new_client("Вячеслав", "Бородин", "v321412@mail.ru", "89193332211")
+            db.add_new_client("Иван", "Иванов", "ivanov@gmail.com", "89992224455")
+            db.add_new_client("Петр", "Петров", "petrov22@mail.ru", "89113234467")
+            db.add_new_client("Дмитрий", "Дмитриев", "dmitry@mail.ru")
 
-    #Добавляем выбранному клиенту номер телефона
-    db.add_phone_number_to_client(client_id, "89003405421")
+            # Выбираем клиента с айди = 4
+            client_id = 4
 
-    #Выбираем клиента с айди = 3
-    client_id = 3
+            # Добавляем выбранному клиенту номер телефона
+            db.add_phone_number_to_client(client_id, "89003444421")
+            db.add_phone_number_to_client(client_id, "89003421421")
+            db.add_phone_number_to_client(client_id, "89003455421")
 
-    #Изменяем данные клиента
-    db.change_client_data(client_id)
+            # Выбираем клиента с айди = 3
+            client_id = 3
 
-    #Выбираем клиента с айди = 1
-    client_id = 1
+            # Изменяем данные клиента
+            db.change_client_data(client_id, first_name="Григорий", phone='89193233489')
 
-    #Удалим номер телефона для выбранного клиента
-    db.delete_client_phone(client_id, "89193332211")
+            # Выбираем клиента с айди = 1
+            client_id = 1
 
-    #Выбираем клиента с айди = 2
-    client_id = 2
+            # Удалим номер телефона для выбранного клиента
+            db.delete_client_phone(client_id, "89193332211")
 
-    #Удалим клиента
-    db.delete_client(client_id)
+            # Выбираем клиента с айди = 2
+            client_id = 2
 
-    #Поиск клиента
-    print(db.find_client())
+            # Удалим клиента
+            db.delete_client(client_id)
 
-    conn.commit()
+            #Поиск клиента
+            db.find_client(phone="89113234467")
+            db.find_client(first_name="Дмитрий", email="dmitry@mail.ru")
+            db.find_client(last_name="Петров")
 
-conn.close()
